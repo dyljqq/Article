@@ -39,3 +39,36 @@ Key paths主要有三种变体:
 	let articleSources = articles.map { $0.source }
 	
 虽然上面的实现完全没有问题，但是我们只是想要从每个元素中提取单一的值，我们不是真的需要闭包的所有功能 - 所以使用keypath就可能非常合适。让我们看看它是如何工作的吧。
+
+我们会通过在Sequence协议中重写map方法来处理key path，而不是通过闭包。既然我们只对这个使用例子的只读访问有兴趣，那么我们将会使用标准的KeyPath类型，并且为了实际的数据提取，我们将会使用给定的键值路径作为下标参数，如下所示：
+
+	extension Sequence {
+		func map<T>(_ keyPath: KeyPath<Element, T>) -> [T] {
+		  return map { $0[keyPath: keyPath] }
+		}
+	}
+	
+随着上述准备就绪，我们能够使用友好和简单的语法来从任意的序列元素中提取出单一的值，使将之前的列子转化成下面的样子成为可能：
+
+	let articleIDs = articles.map(\.id)
+	let articleSources = articles.map(\.source)
+	
+这是非常酷的，但是键值路径真正开始闪光的时候，是当它们被用来组成更加灵活的表达式 - 比如当给序列的值排序的时候。
+
+标准库可以给任意的包含可排序的元素的序列进行自动排序，但是对于其他不可排序的元素，我们必须提供自己的排序闭包。然而，使用键值对，我们可以很简单的给任意的可比较的元素添加排序的支持。就像之前一样，我们给序列添加一个扩展，来将给定的键值对在排序表达闭包中进行转化:
+
+	extension Sequence {
+	    func sorted<T: Comparable>(by keyPath: KeyPath<Element, T>) -> [Element] {
+	        return sorted { a, b in
+	            return a[keyPath: keyPath] < b[keyPath: keyPath]
+	        }
+	    }
+	}
+	
+使用上述方法，我们可以非常快速的排序任意的序列，只用简单的提供一个我们期望被排序的键值对。如果我们构建的app是用来处理任意的可排序的列表 - 举个例子，一个包含了播放列表的音乐app - 这将是非常有用的，我们现在可以随意排序基于可比较属性的列表（甚至是嵌套的属性）。
+
+	playlist.songs.sorted(by: \.name)
+	playlist.songs.sorted(by: \.dateAdded)
+	playlist.songs.sorted(by: \.ratings.worldWide)
+
+完成上述的事情看起来有点简单，就像添加了一个语法糖。但是既可以写出更加灵活的代码去处理序列，让他们更易读，也可以减少重复的代码。因此我们现在能够为任意属性重用相同的排序代码。
