@@ -99,3 +99,25 @@
 	    }
 	    
 所以看完编译后的代码，我们就能够知道block的运行逻辑了。
+
+那么为什么会需要一个forwarding指针指向自身呢？看下面这个例子:
+
+```
+int main(int argc, const char * argv[]) {
+    __block int val = 0;
+    void (^blk)(void) = [^{ ++val; } copy];
+    ++val;
+    blk();
+    printf("val = %d", val);
+    return 0;
+}
+
+我们有一个__block修饰的变量val，那么根据blk中我们知道，这个block会被复制到堆上，而对应的val生成的结构__Block_byref_val_0的值也会被复制到堆上去，那么在栈上的val该怎么跟堆上的做到统一呢？那么这个时候我们就设计了，将栈上的val结构体的forwarding指针的值指向栈上的该对象。通过编译后的代码，我们也能看出，如下：
+
+static void __main_block_func_0(struct __main_block_impl_0 *__cself) {
+  __Block_byref_val_0 *val = __cself->val; // bound by ref
+ ++(val->__forwarding->val); }
+
+++(val.__forwarding->val);
+
+```
