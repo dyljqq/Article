@@ -19,4 +19,3 @@ git remote set-url origin https://<github token>@github.com/<username>/<reponame
 ```
 
 参考文章: [How to fix support for password authentication was removed on GitHub](https://levelup.gitconnected.com/fix-password-authentication-github-3395e579ce74)
-
